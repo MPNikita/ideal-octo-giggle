@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "seed": 20260827,
+  "tiny": false,
+  "normalization": "Unicode text unchanged; strip; lowercase; collapse whitespace",
+  "direct_matching_length_policy": {
+    "max_guard_template_tokens": 2048,
+    "action": "exclude candidate; never truncate"
+  },
+  "datasets": {
+    "wildchat": {
+      "repository": "allenai/WildChat-1M",
+      "revision": "7d6490e462285cf85d91eabea0f9a954fbddcd1f",
+      "config": "default",
+      "split": "train",
+      "fields_used": [
+        "conversation",
+        "conversation.role",
+        "conversation.content",
+        "conversation.language",
+        "conversation.toxic",
+        "conversation.redacted",
+        "toxic",
+        "redacted"
+      ]
+    },
+    "beavertails": {
+      "repository": "PKU-Alignment/BeaverTails",
+      "revision": "8401fe609d288129cc684a9b3be6a93e41cfe678",
+      "config": "default",
+      "split": "330k_train",
+      "fields_used": [
+        "prompt"
+      ],
+      "note": "response/is_safe/category are intentionally not used"
+    },
+    "jbb": {
+      "repository": "JailbreakBench/JBB-Behaviors",
+      "revision": "886acc352a31533ffbcf4ef22c744658688086fc",
+      "config": "behaviors",
+      "splits": [
+        "harmful",
+        "benign"
+      ],
+      "fields_used": [
+        "Index",
+        "Goal"
+      ]
+    }
+  },
+  "outputs": {
+    "stitch_train": {
+      "filename": "stitch_train.jsonl",
+      "count": 800,
+      "sha256": "abb674050391015dea1ea0e74d9607e24896c96ca0fb9b701a8396143873a65e"
+    },
+    "model_selection": {
+      "filename": "model_selection.jsonl",
+      "count": 200,
+      "sha256": "18d1ceed7ac083052eebec7970abd4138ef0a0cf6b0764b47a9c9586f6ca8fbd"
+    },
+    "evaluation": {
+      "filename": "evaluation.jsonl",
+      "count": 200,
+      "sha256": "d1634cd0f3efc0e4545c7d02a6089a0eb895347fe7d113a0829082ea0ed0f2b3"
+    }
+  },
+  "dedup": {
+    "wildchat": {
+      "rows_scanned": 1035,
+      "filtered": 522,
+      "exact_duplicates": 13,
+      "normalized_duplicates_or_overlap": 0,
+      "length_excluded": 17
+    },
+    "beavertails": {
+      "rows_scanned": 513,
+      "filtered": 0,
+      "exact_duplicates": 13,
+      "normalized_duplicates_or_overlap": 0,
+      "length_excluded": 0
+    }
+  },
+  "evaluation_overlap_with_train_or_selection": 0,
+  "tokenization": {
+    "tokenizer": "Qwen/Qwen3Guard-Gen-4B",
+    "revision": "6ec42827da0c1ff11e7a49dc269d2e810d27e108",
+    "template_applied_once": true,
+    "statistics": {
+      "stitch_train": {
+        "raw_tokens": {
+          "min": 1,
+          "median": 18.0,
+          "mean": 146.685,
+          "p95": 747.1999999999998,
+          "max": 1740
+        },
+        "guard_template_tokens": {
+          "min": 298,
+          "median": 314.0,
+          "mean": 443.03,
+          "p95": 1044.1999999999998,
+          "max": 2037
+        },
+        "template_overhead_tokens": {
+          "min": 294,
+          "median": 296.0,
+          "mean": 296.345,
+          "p95": 297.0,
+          "max": 300
+        },
+        "truncated_examples": 0
+      },
+      "model_selection": {
+        "raw_tokens": {
+          "min": 3,
+          "median": 21.0,
+          "mean": 146.245,
+          "p95": 748.3999999999999,
+          "max": 907
+        },
+        "guard_template_tokens": {
+          "min": 299,
+          "median": 317.0,
+          "mean": 442.605,
+          "p95": 1045.3999999999999,
+          "max": 1204
+        },
+        "template_overhead_tokens": {
+          "min": 295,
+          "median": 296.0,
+          "mean": 296.36,
+          "p95": 297.0,
+          "max": 298
+        },
+        "truncated_examples": 0
+      },
+      "evaluation": {
+        "raw_tokens": {
+          "min": 5,
+          "median": 13.0,
+          "mean": 14.28,
+          "p95": 23.0,
+          "max": 30
+        },
+        "guard_template_tokens": {
+          "min": 302,
+          "median": 310.0,
+          "mean": 311.135,
+          "p95": 320.0,
+          "max": 327
+        },
+        "template_overhead_tokens": {
+          "min": 296,
+          "median": 297.0,
+          "mean": 296.855,
+          "p95": 297.0,
+          "max": 297
+        },
+        "truncated_examples": 0
+      }
+    }
+  }
+}

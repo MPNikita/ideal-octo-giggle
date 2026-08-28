@@ -1,0 +1,5 @@
+transformers==5.16.1
+datasets==5.0.1
+huggingface_hub==1.28.0
+numpy==2.5.2
+safetensors==0.8.0

@@ -1,0 +1,24 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.idea/
+.vscode/
+
+# Runtime data and expensive outputs are reproducible and stay off Git.
+data/*generated*/
+data/*generated*_manifest.json
+activation_cache/
+artifacts/
+results/
+logs/
+common/
+*.npz
+*.pt
+*.pth
+*.safetensors
+
+# Hugging Face caches must never be committed.
+.cache/
+huggingface/
+hub/
