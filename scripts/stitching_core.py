@@ -24,6 +24,8 @@ REVISIONS = {
 }
 CUT = 18
 HIDDEN_SIZE = 2560
+NUM_LAYERS = 36
+SUPPORTED_CUTS = (0, 9, 18, 27, 35)
 
 
 def freeze(model):
@@ -77,6 +79,59 @@ def prefix_hidden_states(model, input_ids, attention_mask, cut=CUT):
             use_cache=False,
         )
     return hidden
+
+
+def validate_cuts(cuts):
+    """Return unique sorted cuts after checking Qwen3 boundary semantics."""
+    normalized = tuple(sorted(set(int(cut) for cut in cuts)))
+    if not normalized:
+        raise ValueError("At least one cut is required")
+    invalid = [cut for cut in normalized if cut < 0 or cut >= NUM_LAYERS]
+    if invalid:
+        raise ValueError(
+            f"Cuts must be receiver block indices in [0, {NUM_LAYERS - 1}]; "
+            f"invalid={invalid}"
+        )
+    return normalized
+
+
+def cut_semantics(cut):
+    if cut == 0:
+        return "embedding output / input to receiver block 0"
+    return f"output after donor block {cut - 1} / input to receiver block {cut}"
+
+
+def boundary_hidden_states(model, input_ids, attention_mask, cuts=SUPPORTED_CUTS):
+    """Extract requested receiver-boundary states in one donor forward.
+
+    A cut is a receiver block index. Therefore cut 0 is the embedding output,
+    while cut c>0 is the state after donor blocks [0,c). Only requested
+    boundaries are retained.
+    """
+    cuts = validate_cuts(cuts)
+    backbone = model.model
+    if max(cuts) > len(backbone.layers):
+        raise ValueError(
+            f"Model exposes {len(backbone.layers)} blocks, cannot extract cut {max(cuts)}"
+        )
+    hidden = backbone.embed_tokens(input_ids)
+    positions = torch.arange(input_ids.shape[1], device=input_ids.device).unsqueeze(0)
+    masks, rope = masks_and_rope(backbone, hidden, attention_mask, positions)
+    requested = set(cuts)
+    result = {0: hidden} if 0 in requested else {}
+    for index in range(max(cuts)):
+        hidden = backbone.layers[index](
+            hidden,
+            attention_mask=masks[backbone.config.layer_types[index]],
+            position_ids=positions,
+            position_embeddings=rope,
+            past_key_values=None,
+            use_cache=False,
+        )
+        boundary = index + 1
+        if boundary in requested:
+            result[boundary] = hidden
+    return result
 
 
 def manual_self_logits(model, input_ids, attention_mask, cut=CUT):

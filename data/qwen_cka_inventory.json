@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "audit_date": "2026-08-28",
+  "status": "QWEN CKA INDEX MAPPING: UNRESOLVED",
+  "artifacts": {
+    "base": {
+      "filename": "native-final-tokens-base.pt",
+      "sha256": "f8099480895030917a66c768364e754deb8c7e0af8d8ef0540a2bf9ffdd0ffe7",
+      "embedded_model": "base",
+      "embedded_format": "native",
+      "indices": "int64 0..99",
+      "clean": "float16 [100,36,2560]",
+      "suffix": "float16 [100,36,2560]"
+    },
+    "guard": {
+      "filename": "native-final-tokens-guard.pt",
+      "sha256": "7e3895827775030e11462d4f2b3f4f0830bed439b0d931dbf24c518b32b9b3a4",
+      "embedded_model": "guard",
+      "embedded_format": "native",
+      "indices": "int64 0..99",
+      "clean": "float16 [100,36,2560]",
+      "suffix": "float16 [100,36,2560]"
+    },
+    "evaluation": {
+      "filename": "evaluation.csv",
+      "sha256": "69d767b3a8eebab4e3cc9521c40ccc8e95c0824b82bbea5a1aadf1b8bf3a5823",
+      "rows": 100,
+      "index": "0..99",
+      "tensor_indices_equal_csv_index": true,
+      "semantic_binding_status": "not cryptographically proven"
+    }
+  },
+  "claimed_models": {
+    "base": "Qwen/Qwen3-4B",
+    "guard": "Qwen/Qwen3Guard-Gen-4B",
+    "status": "consistent with filenames and 2560-dimensional Qwen materials, but not proven by tensor metadata"
+  },
+  "unknown_provenance": [
+    "exact model revisions used for extraction",
+    "tokenizer names and revisions",
+    "serialized prompts and input_ids hashes",
+    "chat template snapshots",
+    "extraction code and source commit",
+    "whether representation index 0 is embedding output or block 0 output",
+    "exact final-token selection rule",
+    "direct artifact-to-evaluation.csv content hash binding"
+  ],
+  "reported_input_setup": {
+    "cka": "native chat template separately for Base and Guard; final token",
+    "stitching": "Guard tokenizer/template once; identical input_ids for Base and Guard",
+    "evidence": "prior project correspondence; not encoded in the tensors",
+    "caveat": "Existing Qwen CKA and stitching are not perfectly input-aligned. This permits exploratory comparison only and requires re-extraction before a strict claim."
+  },
+  "cka_implementation": {
+    "team_reference_repository_available": false,
+    "source": null,
+    "source_commit": null,
+    "biased_or_unbiased": "unknown",
+    "bootstrap_or_shuffle": "unknown",
+    "recomputed_during_this_audit": false,
+    "reason_not_recomputed": "The team implementation and proven representation-index semantics are unavailable; a third CKA formula was not introduced."
+  },
+  "stitch_cut_mapping": [
+    {
+      "stitch_cut": 0,
+      "boundary_semantics": "embedding output / input to receiver block 0",
+      "cka_tensor_index": null,
+      "mapping_status": "unresolved"
+    },
+    {
+      "stitch_cut": 9,
+      "boundary_semantics": "after block 8 / input to receiver block 9",
+      "cka_tensor_index": null,
+      "mapping_status": "unresolved"
+    },
+    {
+      "stitch_cut": 18,
+      "boundary_semantics": "after block 17 / input to receiver block 18",
+      "cka_tensor_index": null,
+      "mapping_status": "unresolved"
+    },
+    {
+      "stitch_cut": 27,
+      "boundary_semantics": "after block 26 / input to receiver block 27",
+      "cka_tensor_index": null,
+      "mapping_status": "unresolved"
+    },
+    {
+      "stitch_cut": 35,
+      "boundary_semantics": "after block 34 / input to receiver block 35",
+      "cka_tensor_index": null,
+      "mapping_status": "unresolved"
+    }
+  ],
+  "required_to_resolve_mapping": [
+    "the extraction script/notebook or an authoritative README defining the 36 entries",
+    "the exact extraction commit",
+    "model/tokenizer revisions and serialized input metadata"
+  ]
+}

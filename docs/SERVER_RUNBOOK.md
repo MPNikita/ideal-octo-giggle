@@ -1,4 +1,4 @@
-# Server runbook: cut=18 baseline
+# Server runbook: Qwen multi-cut baseline
 
 ## 1. Discover the new machine
 
@@ -33,9 +33,11 @@ Replace `CUDA_INDEX` with the compatible official index. Keep Transformers at
 ```bash
 export HF_HOME="/persistent/.../huggingface"
 export STITCH_DATA="/persistent/.../probguard/data"
-export STITCH_ARTIFACTS="/persistent/.../probguard/artifacts"
-export STITCH_RESULTS="/persistent/.../probguard/results"
+export STITCH_MANIFEST="$PWD/data/baseline_manifest.json"
+export STITCH_ARTIFACTS="/persistent/.../probguard/artifacts/multicut"
+export STITCH_RESULTS="/persistent/.../probguard/results/multicut"
 export STITCH_LOGS="/persistent/.../probguard/logs"
+export STITCH_CUTS="0,9,18,27,35"
 ```
 
 ## 3. Smoke and benchmark gate
@@ -45,8 +47,9 @@ bash scripts/server_smoke.sh
 ```
 
 This explicitly downloads the two models and a tiny dataset, checks exact
-revisions/architecture, Base and Guard self-stitch, cached Guard generation,
-tiny Direct Matching and persistent writes. It never starts the full dataset.
+revisions/architecture, Base and Guard self-stitch at cuts 0/18/35, cached Guard
+generation, three separate tiny adapters, shared extraction, aggregate outputs,
+resume metadata, and persistent writes. It never starts the full dataset.
 
 Before the paid full run, use the smoke summary/timestamps and `nvidia-smi` to
 record Base extraction throughput, Guard extraction throughput, native and
@@ -56,30 +59,40 @@ execution choice if memory is insufficient; do not alter scientific defaults.
 ## 4. Full run under tmux
 
 ```bash
-tmux new -s cut18
-bash scripts/server_run_cut18.sh
+tmux new -s qwen-multicut
+bash scripts/server_run_multicut.sh
 ```
 
 The wrapper refuses no-CUDA and dirty repositories, prints the commit and
-environment, prepares the pinned data, and logs stdout/stderr. To resume after
-an interruption, verify artifact metadata and rerun the Python baseline with
-`--resume`; use `--overwrite` only when intentionally replacing the selected
-output paths.
+environment, validates the exact manifest, runs smoke, prepares pinned data if
+needed, and logs stdout/stderr. Shared train/selection boundary extraction runs
+once per model, native Guard JBB evaluation runs once, and each cut has an
+independent checkpoint and stitched prediction stage. Rerunning the wrapper
+uses `--resume` and reuses a stage only after metadata/hash validation. Use
+`--overwrite` only when intentionally replacing explicitly selected paths.
 
 Monitoring commands:
 
 ```bash
 watch -n 5 nvidia-smi
 tmux list-sessions
-tail -f "$STITCH_LOGS"/cut18_*.log
+tail -f "$STITCH_LOGS"/multicut_*.log
 pgrep -af python
 df -h
 ```
 
 ## 5. Backup before shutdown
 
-Check Python processes, confirm the GPU is idle, and verify the checkpoint,
-prediction CSV, summary JSON and log exist. Compute SHA-256 for each, copy them
-off the server, recompute and compare hashes, and only then shut the server
-down. Activation caches can be retained for resume but are not scientific
-results and must not be committed.
+Check Python processes, confirm the GPU is idle, and verify all five
+checkpoints, per-cut prediction CSVs, aggregate CSV/JSON and log exist. Compute
+SHA-256 for each, copy them off the server, recompute and compare hashes, and
+only then shut the server down. Activation caches can be retained for resume
+but are not scientific results and must not be committed.
+
+## Legacy cut18 regression
+
+The completed cut18 scientific result was produced by
+`scripts/run_cut18_baseline.py` at commit
+`66f93c1c0ec55cd4e4839b785aaa71532f678de2`. Do not overwrite or reinterpret
+that archived result. The legacy wrapper remains available only for exact
+cut18 reproduction; the next paid run should use the multi-cut wrapper above.
