@@ -57,6 +57,9 @@ from stitching_core import (
     tensor_hash,
     validate_cuts,
 )
+from queue_status import fail as fail_queue_status
+from queue_status import initialize as initialize_queue_status
+from queue_status import update as update_queue_status
 
 FULL_MANIFEST_SHA256 = "614209e8f746787d139a4d1d67d6475c30fae365ac21b78531ff704af6d995e0"
 ROLE_FILES = {
@@ -829,6 +832,7 @@ def configure_args():
 
 def main():
     args = configure_args()
+    initialize_queue_status(args.cuts)
     started = time.perf_counter()
     device = torch.device(args.device)
     random.seed(args.seed)
@@ -852,6 +856,11 @@ def main():
     cache_paths = {}
     for role in ("train", "selection"):
         for short, model_name in (("base", BASE), ("guard", GUARD)):
+            update_queue_status(
+                queue_state="RUNNING",
+                phase="BASE_EXTRACTION" if short == "base" else "GUARD_EXTRACTION",
+                current_cut=None,
+            )
             path = cache_dir / f"{role}_{short}_boundaries.pt"
             cache_paths[(role, short)] = path
             states, seconds, reused = extract_shared_cache(
@@ -876,7 +885,14 @@ def main():
     adapters = {}
     dm_by_cut = {}
     checkpoint_hashes = {}
+    completed_adapter_cuts = []
     for cut in args.cuts:
+        update_queue_status(
+            queue_state="RUNNING",
+            phase="TRAIN_ADAPTER",
+            current_cut=cut,
+            next_cut=cut,
+        )
         checkpoint = args.artifacts_dir / f"direct_matching_cut{cut}.pt"
         metadata = checkpoint_metadata(
             cut,
@@ -902,6 +918,16 @@ def main():
         dm_by_cut[cut] = dm
         timings[f"adapter_training_cut{cut}_seconds"] = training_seconds
         checkpoint_hashes[cut] = file_hash(checkpoint)
+        completed_adapter_cuts.append(cut)
+        adapter_offset = args.cuts.index(cut) + 1
+        update_queue_status(
+            completed_adapter_cuts=completed_adapter_cuts,
+            next_cut=(
+                args.cuts[adapter_offset]
+                if adapter_offset < len(args.cuts)
+                else None
+            ),
+        )
         print(f"checkpoint={checkpoint} reused={reused}")
 
     generation_meta = {
@@ -919,6 +945,12 @@ def main():
         "parser": "Safety: Safe|Controversial|Unsafe regex; parse failure is binary unsafe",
     }
     native_path = args.results_dir / "native_predictions.json"
+    update_queue_status(
+        queue_state="RUNNING",
+        phase="NATIVE_EVAL",
+        current_cut=None,
+        next_cut=args.cuts[0],
+    )
     if native_path.exists() and args.resume:
         native, native_seconds, native_reused = prediction_stage_v2(
             native_path, generation_meta, True, False, lambda: ([], 0.0)
@@ -949,7 +981,14 @@ def main():
     native_metrics = metrics(rows["evaluation"], native)
     records = []
     per_cut = {}
+    completed_eval_cuts = []
     for cut in args.cuts:
+        update_queue_status(
+            queue_state="RUNNING",
+            phase="STITCHED_EVAL",
+            current_cut=cut,
+            next_cut=cut,
+        )
         stitched_meta = {
             **generation_meta,
             "cut": cut,
@@ -1029,7 +1068,22 @@ def main():
             per_cut[str(cut)],
             args.overwrite or args.resume,
         )
+        completed_eval_cuts.append(cut)
+        eval_offset = args.cuts.index(cut) + 1
+        update_queue_status(
+            completed_cuts=completed_eval_cuts,
+            completed_eval_cuts=completed_eval_cuts,
+            next_cut=(
+                args.cuts[eval_offset] if eval_offset < len(args.cuts) else None
+            ),
+        )
 
+    update_queue_status(
+        queue_state="RUNNING",
+        phase="AGGREGATION",
+        current_cut=None,
+        next_cut=None,
+    )
     csv_path = args.results_dir / "multicut_summary.csv"
     resolve_output(csv_path, args.overwrite or args.resume)
     with csv_path.open("w", encoding="utf-8", newline="") as handle:
@@ -1065,6 +1119,16 @@ def main():
     }
     json_path = args.results_dir / "multicut_summary.json"
     write_json(json_path, summary, args.overwrite or args.resume)
+    update_queue_status(
+        queue_state="DONE",
+        phase="DONE",
+        current_cut=None,
+        completed_cuts=list(args.cuts),
+        completed_adapter_cuts=list(args.cuts),
+        completed_eval_cuts=list(args.cuts),
+        next_cut=None,
+        failure=None,
+    )
     print(
         "MULTICUT PIPELINE: PASS\n"
         f"cuts={','.join(map(str, args.cuts))}\n"
@@ -1073,4 +1137,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BaseException as error:
+        fail_queue_status(f"{type(error).__name__}: {error}")
+        raise

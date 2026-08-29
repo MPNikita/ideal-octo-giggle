@@ -17,6 +17,15 @@ test -z "$(git status --porcelain)" || {
 export STITCH_DATA STITCH_MANIFEST STITCH_ARTIFACTS STITCH_RESULTS STITCH_LOGS
 
 mkdir -p "$STITCH_DATA" "$STITCH_ARTIFACTS" "$STITCH_RESULTS" "$STITCH_LOGS"
+if [[ "${STITCH_QUEUE_STATUS:-0}" == "1" ]]; then
+  python scripts/queue_status.py initialize --cuts "$STITCH_CUTS"
+  queue_failure() {
+    code=$?
+    python scripts/queue_status.py fail "server_run_multicut.sh exited with code $code" || true
+    exit "$code"
+  }
+  trap queue_failure ERR
+fi
 echo "commit=$(git rev-parse HEAD) cuts=$STITCH_CUTS"
 python - <<'PY'
 import torch
@@ -48,7 +57,9 @@ if actual != sys.argv[2]:
 print(f"manifest_sha256={actual}")
 PY
 
-bash scripts/server_smoke.sh
+if [[ "${STITCH_SKIP_SMOKE:-0}" != "1" ]]; then
+  bash scripts/server_smoke.sh
+fi
 log="$STITCH_LOGS/multicut_$(date -u +%Y%m%dT%H%M%SZ).log"
 python scripts/run_multicut_baseline.py \
   --cuts "$STITCH_CUTS" \
