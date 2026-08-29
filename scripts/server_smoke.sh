@@ -23,6 +23,7 @@ python scripts/test_self_stitch.py --model Qwen/Qwen3Guard-Gen-4B --cuts 0 18 35
 python scripts/test_stitched_generation.py --cuts 0 18 35 --device cuda
 python scripts/direct_matching_smoke.py
 echo "Preparing a tiny dataset; this performs explicit Hugging Face dataset downloads."
+PROBGUARD_EXIT_WITHOUT_FINALIZE=1 \
 python scripts/prepare_baseline_data.py --tiny --output-dir "$STITCH_DATA" \
   --manifest "$STITCH_DATA/manifest.json" --overwrite
 python scripts/run_multicut_baseline.py --cuts 0,18,35 --tiny \

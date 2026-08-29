@@ -3,9 +3,11 @@
 import argparse
 import hashlib
 import json
+import os
 import random
 import re
 import statistics
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -218,3 +220,11 @@ def main():
 
 if __name__ == "__main__":
     main()
+    if os.environ.get("PROBGUARD_EXIT_WITHOUT_FINALIZE", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)

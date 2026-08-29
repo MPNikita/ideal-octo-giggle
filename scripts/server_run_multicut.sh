@@ -42,6 +42,7 @@ PY
 if [[ ! -s "$STITCH_DATA/stitch_train.jsonl" \
    || ! -s "$STITCH_DATA/model_selection.jsonl" \
    || ! -s "$STITCH_DATA/evaluation.jsonl" ]]; then
+  PROBGUARD_EXIT_WITHOUT_FINALIZE=1 \
   python scripts/prepare_baseline_data.py \
     --output-dir "$STITCH_DATA" --manifest "$STITCH_MANIFEST"
 fi
